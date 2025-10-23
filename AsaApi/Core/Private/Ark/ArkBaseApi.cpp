@@ -12,6 +12,7 @@
 #include <filesystem>
 #include "Requests.h"
 #include <minizip/unzip.h>
+#include <Windows.h>
 
 namespace API
 {
@@ -59,8 +60,6 @@ namespace API
 			if (!fs::exists(fs::path(exe_path).append(ArkBaseApi::GetApiName()+"/Cache")))
 				fs::create_directory(fs::path(exe_path).append(ArkBaseApi::GetApiName()+"/Cache"));
 
-			const fs::path apiPDB = fs::path(exe_path).append(ArkBaseApi::GetApiName() + "/AsaApi.pdb");
-			const fs::path apiPDBDest = fs::path(exe_path).append("AsaApi.pdb");
 			const fs::path pdbIgnoreFile = fs::path(exe_path).append(ArkBaseApi::GetApiName() + "/pdbignores.txt");
 			const fs::path keyCacheFile = fs::path(exe_path).append(ArkBaseApi::GetApiName()+"/Cache/cached_key.cache");
 			const fs::path offsetsCacheFile = fs::path(exe_path).append(ArkBaseApi::GetApiName()+"/Cache/cached_offsets.cache");
@@ -71,10 +70,33 @@ namespace API
 			std::unordered_set<std::string> pdbIgnoreSet = Cache::readFileIntoSet(pdbIgnoreFile);
 			const std::string defaultCDNUrl = "https://cdn.pelayori.com/cache/";
 
-			if (fs::exists(apiPDB))
+			const fs::path arkApiDir = fs::path(exe_path).append(ArkBaseApi::GetApiName());
+
+			const DWORD dllFlags = LOAD_LIBRARY_SEARCH_APPLICATION_DIR |
+				LOAD_LIBRARY_SEARCH_DEFAULT_DIRS |
+				LOAD_LIBRARY_SEARCH_USER_DIRS;
+
+			if (!SetDefaultDllDirectories(dllFlags))
 			{
-				fs::copy_file(apiPDB, apiPDBDest, fs::copy_options::overwrite_existing);
-				fs::remove(apiPDB);
+				const DWORD err = GetLastError();
+				Log::GetLog()->warn("SetDefaultDllDirectories failed ({}). Falling back to SetDllDirectoryW.", err);
+
+				std::wstring wApiDir = arkApiDir.wstring();
+				if (!SetDllDirectoryW(wApiDir.c_str()))
+				{
+					Log::GetLog()->warn("SetDllDirectoryW failed ({}) for path: {}", GetLastError(), arkApiDir.string());
+				}
+			}
+
+			const std::wstring w = arkApiDir.wstring();
+			DLL_DIRECTORY_COOKIE cookie = AddDllDirectory(w.c_str());
+			if (cookie == nullptr)
+			{
+				Log::GetLog()->warn("AddDllDirectory failed ({}) for path: {}", GetLastError(), std::filesystem::path(w).string());
+			}
+			else
+			{
+				Log::GetLog()->info("Added DLL search directory: {}", std::filesystem::path(w).string());
 			}
 
 			if (autoCacheConfig.value("Enable", true)

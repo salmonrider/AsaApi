@@ -98,7 +98,7 @@ namespace API
 
 	std::shared_ptr<Plugin>& PluginManager::LoadPlugin(const std::string& plugin_name) noexcept(false)
 	{
-		MovePDB(plugin_name);
+		//MovePDB(plugin_name);
 
 		namespace fs = std::filesystem;
 
@@ -124,7 +124,27 @@ namespace API
 			throw std::runtime_error("Plugin " + plugin_name + " requires newer API version!");
 		}
 
-		HINSTANCE h_module = LoadLibraryA(full_dll_path.c_str());
+		if (!dll_search_initialized_)
+		{
+			SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_USER_DIRS);
+			dll_search_initialized_ = true;
+		}
+
+		{
+			std::wstring wdir(dir_path.begin(), dir_path.end());
+			DLL_DIRECTORY_COOKIE cookie = AddDllDirectory(wdir.c_str());
+			if (cookie)
+			{
+				dll_dir_cookies_[plugin_name] = cookie;
+			}
+			else
+			{
+				Log::GetLog()->warn("AddDllDirectory failed for '{}' (error {})", dir_path, GetLastError());
+			}
+		}
+
+		std::wstring wfull(full_dll_path.begin(), full_dll_path.end());
+		HINSTANCE h_module = LoadLibraryExW(wfull.c_str(), nullptr, LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_USER_DIRS);
 		if (h_module == nullptr)
 		{
 			throw std::runtime_error(
@@ -181,6 +201,13 @@ namespace API
 		{
 			throw std::runtime_error(
 				"Failed to unload plugin - " + plugin_name + "\nError code: " + std::to_string(GetLastError()));
+		}
+
+		auto cookieIt = dll_dir_cookies_.find(plugin_name);
+		if (cookieIt != dll_dir_cookies_.end())
+		{
+			RemoveDllDirectory(cookieIt->second);
+			dll_dir_cookies_.erase(cookieIt);
 		}
 
 		loaded_plugins_.erase(remove(loaded_plugins_.begin(), loaded_plugins_.end(), *iter), loaded_plugins_.end());
