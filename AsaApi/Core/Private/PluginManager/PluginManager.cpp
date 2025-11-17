@@ -257,8 +257,7 @@ namespace API
 			{
 				if (!IsPluginLoaded(dependency))
 				{
-					Log::GetLog()->error("Plugin {} is  missing! {} might not work correctly", dependency,
-						plugin->name);
+					Log::GetLog()->error("'{}' is missing a required plugin dependency: '{}'. The plugin may not function correctly", plugin->name, dependency);	
 				}
 			}
 		}

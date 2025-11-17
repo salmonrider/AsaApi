@@ -169,7 +169,9 @@ namespace AsaApi
 				{
 					TArray<FString> parsedName;
 					it->first.ParseIntoArray(parsedName, L"\\", true);
-					Log::GetLog()->warn("Custom messaging error for '{}', using normal messaging. Reason: {}", parsedName.Last().ToString(), error.value());
+					Log::GetLog()->warn("[OPTIONAL MOD MISSING] 'AsaApiUtils' (Mod ID: 955333) not available for '{}'. Falling back to default messaging system. Reason: {}",
+						parsedName.Last().ToString(), error.value());
+					Log::GetLog()->warn("[OPTIONAL] Download: https://www.curseforge.com/ark-survival-ascended/mods/asa-api-utils");
 					it = messaging_managers_.erase(it);
 					continue;
 				}
