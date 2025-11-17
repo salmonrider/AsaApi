@@ -10,7 +10,7 @@ public:
 	{
 		AActor* singleton = AsaApiModUtils::GetSingleton();
 		if (!singleton)
-			return "Singleton not found, please check the mod is correctly installed";
+			return "The 'AsaApiUtils' singleton could not be found. Please verify that the mod is installed correctly";
 		return {};
 	}
 
