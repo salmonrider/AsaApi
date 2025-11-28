@@ -304,15 +304,6 @@ ARK_API void FString::AssignRange(const TCHAR* OtherData, int32 OtherLen)
 	}
 }
 
-void FString::Reserve(int32 CharacterCount)
-{
-	checkSlow(CharacterCount >= 0 && CharacterCount < MAX_int32);
-	if (CharacterCount > 0)
-	{
-		Data.Reserve(CharacterCount + 1);
-	}	
-}
-
 void FString::Empty(int32 Slack)
 {
 	Data.Empty(Slack ? Slack + 1 : 0);
