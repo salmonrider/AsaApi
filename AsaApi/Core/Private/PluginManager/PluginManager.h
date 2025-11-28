@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 #include <windows.h>
+#include <unordered_map>
 
 #include "json.hpp"
 
@@ -99,5 +100,8 @@ namespace API
 		int reload_sleep_seconds_{5};
 		bool save_world_before_reload_{true};
 		time_t next_reload_check_{5};
+
+		std::unordered_map<std::string, DLL_DIRECTORY_COOKIE> dll_dir_cookies_{};
+		bool dll_search_initialized_{ false };
 	};
 } // namespace API
