@@ -41,16 +41,18 @@ namespace API
 	}
 
 	void Offsets::Init(std::unordered_map<std::string, intptr_t>&& offsets_dump,
-	                   std::unordered_map<std::string, BitField>&& bitfields_dump)
+	                   std::unordered_map<std::string, BitField>&& bitfields_dump,
+	                   std::unordered_map<std::string, FieldInfo>&& fields_dump,
+	                   std::unordered_map<std::string, FunctionInfo>&& functions_dump)
 	{
 		offsets_dump_.swap(offsets_dump);
 		bitfields_dump_.swap(bitfields_dump);
+		fields_dump_.swap(fields_dump);
+		functions_dump_.swap(functions_dump);
 	}
 
-	DWORD64 Offsets::GetAddress(const void* base, const std::string& name)
-	{
-		if (!offsets_dump_.contains(name))
-		{
+	DWORD64 Offsets::GetAddress(const void* base, const std::string& name) {
+		if (!offsets_dump_.contains(name)) {
 			Log::GetLog()->critical("Failed to get the offset of {}.", name);
 			Log::GetLog()->flush();
 			Sleep(10000);
@@ -60,10 +62,8 @@ namespace API
 		return reinterpret_cast<DWORD64>(base) + static_cast<DWORD64>(offsets_dump_[name]);
 	}
 
-	LPVOID Offsets::GetAddress(const std::string& name)
-	{
-		if (!offsets_dump_.contains(name))
-		{
+	LPVOID Offsets::GetAddress(const std::string& name) {
+		if (!offsets_dump_.contains(name)) {
 			Log::GetLog()->critical("Failed to get the offset of {}.", name);
 			Log::GetLog()->flush();
 			Sleep(10000);
@@ -73,10 +73,8 @@ namespace API
 		return reinterpret_cast<LPVOID>(module_base_ + static_cast<DWORD64>(offsets_dump_[name]));
 	}
 
-	LPVOID Offsets::GetDataAddress(const std::string& name)
-	{
-		if (!offsets_dump_.contains(name))
-		{
+	LPVOID Offsets::GetDataAddress(const std::string& name) {
+		if (!offsets_dump_.contains(name)) {
 			Log::GetLog()->critical("Failed to get the offset of {}.", name);
 			Log::GetLog()->flush();
 			Sleep(10000);
@@ -86,18 +84,10 @@ namespace API
 		return reinterpret_cast<LPVOID>(data_base_ + static_cast<DWORD64>(offsets_dump_[name]));
 	}
 
-	BitField Offsets::GetBitField(const void* base, const std::string& name)
-	{
-		return GetBitFieldInternal(base, name);
-	}
+	BitField Offsets::GetBitField(const void* base, const std::string& name) { return GetBitFieldInternal(base, name); }
+	BitField Offsets::GetBitField(LPVOID base, const std::string& name) { return GetBitFieldInternal(base, name); }
 
-	BitField Offsets::GetBitField(LPVOID base, const std::string& name)
-	{
-		return GetBitFieldInternal(base, name);
-	}
-
-	BitField Offsets::GetBitFieldInternal(const void* base, const std::string& name)
-	{
+	BitField Offsets::GetBitFieldInternal(const void* base, const std::string& name) {
 		if (!bitfields_dump_.contains(name))
 		{
 			Log::GetLog()->critical("Failed to get the bitfield address of {}.", name);
@@ -114,5 +104,57 @@ namespace API
 		cf.offset = reinterpret_cast<DWORD64>(base) + static_cast<DWORD64>(bf.offset);
 
 		return cf;
+	}
+
+	std::vector<std::pair<std::string, intptr_t>> Offsets::GetOffsetsForClass(const std::string& className) const {
+		std::vector<std::pair<std::string, intptr_t>> result;
+		const std::string prefix = className + ".";
+		
+		for (const auto& [key, value] : offsets_dump_) {
+			if (key.rfind(prefix, 0) == 0) {
+				result.emplace_back(key, value);
+			}
+		}
+		
+		return result;
+	}
+
+	std::vector<std::pair<std::string, BitField>> Offsets::GetBitFieldsForClass(const std::string& className) const {
+		std::vector<std::pair<std::string, BitField>> result;
+		const std::string prefix = className + ".";
+		
+		for (const auto& [key, value] : bitfields_dump_) {
+			if (key.rfind(prefix, 0) == 0) {
+				result.emplace_back(key, value);
+			}
+		}
+		
+		return result;
+	}
+
+	std::vector<std::pair<std::string, FieldInfo>> Offsets::GetFieldsForClass(const std::string& className) const {
+		std::vector<std::pair<std::string, FieldInfo>> result;
+		const std::string prefix = className + ".";
+		
+		for (const auto& [key, value] : fields_dump_) {
+			if (key.rfind(prefix, 0) == 0) {
+				result.emplace_back(key, value);
+			}
+		}
+		
+		return result;
+	}
+
+	std::vector<std::pair<std::string, FunctionInfo>> Offsets::GetFunctionsForClass(const std::string& className) const {
+		std::vector<std::pair<std::string, FunctionInfo>> result;
+		const std::string prefix = className + ".";
+		
+		for (const auto& [key, value] : functions_dump_) {
+			if (key.rfind(prefix, 0) == 0) {
+				result.emplace_back(key, value);
+			}
+		}
+		
+		return result;
 	}
 } // namespace API
