@@ -78,10 +78,11 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
-    <VCToolsVersion>14.39.33519</VCToolsVersion>
+    <VCToolsVersion>
+    </VCToolsVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Wooly|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
@@ -267,11 +268,11 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;ASAAPI_EXPORTS;ARK_EXPORTS;_WINDOWS;_USRDLL;POCO_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NOMINMAX;_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR;_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;NDEBUG;ASAAPI_EXPORTS;ARK_EXPORTS;_WINDOWS;_USRDLL;POCO_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)AsaApi\Core\Public\API\UE;$(SolutionDir)AsaApi\Core\Public;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)AsaApi\Core\Public\API\UE;$(SolutionDir)AsaApi\Core\Public;$(SolutionDir)Includes\raw_pdb\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -371,6 +372,26 @@ copy "$(SolutionDir)$(PlatformName)\$(ConfigurationName)\$(ProjectName).pdb" "F:
     <ClCompile Include="Core\Private\Logger.cpp" />
     <ClCompile Include="Core\Private\Offsets.cpp" />
     <ClCompile Include="Core\Private\PDBReader\PDBReader.cpp" />
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB.cpp" />
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_CoalescedMSFStream.cpp" />
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_DBIStream.cpp" />
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_DirectMSFStream.cpp" />
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_GlobalSymbolStream.cpp" />
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_ImageSectionStream.cpp" />
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_InfoStream.cpp" />
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_ModuleInfoStream.cpp" />
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_ModuleSymbolStream.cpp" />
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_RawFile.cpp" />
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_TPIStream.cpp" />
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_Types.cpp" />
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_DBITypes.cpp" />
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_IPIStream.cpp" />
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_ModuleLineStream.cpp" />
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_NamesStream.cpp" />
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_PCH.cpp" />
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_PublicSymbolStream.cpp" />
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_SectionContributionStream.cpp" />
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_SourceFileStream.cpp" />
     <ClCompile Include="Core\Private\PluginManager\PluginManager.cpp" />
     <ClCompile Include="Core\Private\Tools\Requests.cpp" />
     <ClCompile Include="Core\Private\Tools\Timer.cpp" />

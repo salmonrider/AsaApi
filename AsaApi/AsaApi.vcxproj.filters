@@ -109,6 +109,9 @@
     <Filter Include="Source Files\Core\Private\UE">
       <UniqueIdentifier>{f1b840ad-6bee-4a69-b9ca-20346e129b27}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Core\Private\PDBReader\raw_pdb">
+      <UniqueIdentifier>{358771c7-78e5-4c89-8d84-58b61dfd3d7d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -176,6 +179,66 @@
     </ClCompile>
     <ClCompile Include="Core\Private\Tools\Timer.cpp">
       <Filter>Source Files\Core\Private\Tools</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB.cpp">
+      <Filter>Source Files\Core\Private\PDBReader\raw_pdb</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_CoalescedMSFStream.cpp">
+      <Filter>Source Files\Core\Private\PDBReader\raw_pdb</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_DBIStream.cpp">
+      <Filter>Source Files\Core\Private\PDBReader\raw_pdb</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_DBITypes.cpp">
+      <Filter>Source Files\Core\Private\PDBReader\raw_pdb</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_DirectMSFStream.cpp">
+      <Filter>Source Files\Core\Private\PDBReader\raw_pdb</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_GlobalSymbolStream.cpp">
+      <Filter>Source Files\Core\Private\PDBReader\raw_pdb</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_ImageSectionStream.cpp">
+      <Filter>Source Files\Core\Private\PDBReader\raw_pdb</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_InfoStream.cpp">
+      <Filter>Source Files\Core\Private\PDBReader\raw_pdb</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_IPIStream.cpp">
+      <Filter>Source Files\Core\Private\PDBReader\raw_pdb</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_ModuleInfoStream.cpp">
+      <Filter>Source Files\Core\Private\PDBReader\raw_pdb</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_ModuleLineStream.cpp">
+      <Filter>Source Files\Core\Private\PDBReader\raw_pdb</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_ModuleSymbolStream.cpp">
+      <Filter>Source Files\Core\Private\PDBReader\raw_pdb</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_NamesStream.cpp">
+      <Filter>Source Files\Core\Private\PDBReader\raw_pdb</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_PCH.cpp">
+      <Filter>Source Files\Core\Private\PDBReader\raw_pdb</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_PublicSymbolStream.cpp">
+      <Filter>Source Files\Core\Private\PDBReader\raw_pdb</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_RawFile.cpp">
+      <Filter>Source Files\Core\Private\PDBReader\raw_pdb</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_SectionContributionStream.cpp">
+      <Filter>Source Files\Core\Private\PDBReader\raw_pdb</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_SourceFileStream.cpp">
+      <Filter>Source Files\Core\Private\PDBReader\raw_pdb</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_TPIStream.cpp">
+      <Filter>Source Files\Core\Private\PDBReader\raw_pdb</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Includes\raw_pdb\src\PDB_Types.cpp">
+      <Filter>Source Files\Core\Private\PDBReader\raw_pdb</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
