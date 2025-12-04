@@ -42,6 +42,12 @@ namespace API
 		static void SetServerID(RCONClientConnection* /*rcon_connection*/, RCONPacket* /*rcon_packet*/,
 			UWorld* /*unused*/);
 
+		// Class dump command
+		static FString DumpClass(FString* cmd);
+		static void DumpClassCmd(APlayerController* /*player_controller*/, FString* /*cmd*/, bool /*unused*/);
+		static void DumpClassRcon(RCONClientConnection* /*rcon_connection*/, RCONPacket* /*rcon_packet*/,
+			UWorld* /*unused*/);
+
 		std::unique_ptr<AsaApi::ICommands> commands_;
 		std::unique_ptr<AsaApi::IHooks> hooks_;
 		std::unique_ptr<AsaApi::IApiUtils> api_utils_;

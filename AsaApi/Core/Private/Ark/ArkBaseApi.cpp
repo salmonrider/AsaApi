@@ -10,6 +10,8 @@
 #include "HooksImpl.h"
 #include "ApiUtils.h"
 #include <filesystem>
+#include <fstream>
+#include <algorithm>
 #include "Requests.h"
 #include <minizip/unzip.h>
 #include <Windows.h>
@@ -42,6 +44,8 @@ namespace API
 
 		std::unordered_map<std::string, intptr_t> offsets_dump;
 		std::unordered_map<std::string, BitField> bitfields_dump;
+		std::unordered_map<std::string, FieldInfo> fields_dump;
+		std::unordered_map<std::string, FunctionInfo> functions_dump;
 
 		try
 		{
@@ -64,11 +68,12 @@ namespace API
 			const fs::path keyCacheFile = fs::path(exe_path).append(ArkBaseApi::GetApiName()+"/Cache/cached_key.cache");
 			const fs::path offsetsCacheFile = fs::path(exe_path).append(ArkBaseApi::GetApiName()+"/Cache/cached_offsets.cache");
 			const fs::path bitfieldsCacheFile = fs::path(exe_path).append(ArkBaseApi::GetApiName()+"/Cache/cached_bitfields.cache");
+			const fs::path fieldsCacheFile = fs::path(exe_path).append(ArkBaseApi::GetApiName()+"/Cache/cached_fields.cache");
+			const fs::path functionsCacheFile = fs::path(exe_path).append(ArkBaseApi::GetApiName()+"/Cache/cached_functions.cache");
 			const fs::path offsetsCacheFilePlain = fs::path(exe_path).append(ArkBaseApi::GetApiName() + "/Cache/cached_offsets.txt");
 			const std::string fileHash = Cache::calculateSHA256(filepath);
 			std::string storedHash = Cache::readFromFile(keyCacheFile);
 			std::unordered_set<std::string> pdbIgnoreSet = Cache::readFileIntoSet(pdbIgnoreFile);
-			const std::string defaultCDNUrl = "https://cdn.pelayori.com/cache/";
 
 			const fs::path arkApiDir = fs::path(exe_path).append(ArkBaseApi::GetApiName());
 
@@ -99,32 +104,23 @@ namespace API
 				Log::GetLog()->info("Added DLL search directory: {}", std::filesystem::path(w).string());
 			}
 
-			if (autoCacheConfig.value("Enable", true)
-				&& autoCacheConfig.value("DownloadCacheURL", defaultCDNUrl) != ""
-				&& (fileHash != storedHash || !fs::exists(offsetsCacheFile) || !fs::exists(bitfieldsCacheFile)))
-			{
-				const fs::path downloadFile = autoCacheConfig.value("DownloadCacheURL", defaultCDNUrl) + fileHash + ".zip";
-				const fs::path localFile = fs::path(exe_path).append(ArkBaseApi::GetApiName() + "/Cache/" + fileHash + ".zip");
-
-				if (ArkBaseApi::DownloadCacheFiles(downloadFile, localFile))
-					storedHash = Cache::readFromFile(keyCacheFile);
-				else
-					Log::GetLog()->warn("Ooops you are early, the cache has not finished cooking yet! Cache files usually take 10 minutes to be ready after an update. If more time has passed please contact developers.");
-
-				if (fs::exists(localFile))
-					fs::remove(localFile);
-			}
-
 			if (fileHash != storedHash || !fs::exists(offsetsCacheFile) || !fs::exists(bitfieldsCacheFile))
 			{
-				Log::GetLog()->info("Cache refresh required this will take 10-20 minutes to complete");
-				pdb_reader.Read(filepath, &offsets_dump, &bitfields_dump, pdbIgnoreSet);
+				Log::GetLog()->info("Cache refresh required this will take few seconds to complete");
+				pdb_reader.Read(filepath, &offsets_dump, &bitfields_dump, pdbIgnoreSet, &fields_dump, &functions_dump);
 
 				Log::GetLog()->info("Caching offsets for faster loading next time");
 				Cache::serializeMap(offsets_dump, offsetsCacheFile);
 
 				Log::GetLog()->info("Caching bitfields for faster loading next time");
 				Cache::serializeMap(bitfields_dump, bitfieldsCacheFile);
+				
+				Log::GetLog()->info("Caching field type info for faster loading next time");
+				Cache::serializeMap(fields_dump, fieldsCacheFile);
+				
+				Log::GetLog()->info("Caching function info for faster loading next time");
+				Cache::serializeMap(functions_dump, functionsCacheFile);
+				
 				Cache::saveToFile(keyCacheFile, fileHash);
 				Cache::saveToFilePlain(offsetsCacheFilePlain, offsets_dump);
 			}
@@ -136,6 +132,18 @@ namespace API
 
 				Log::GetLog()->info("Reading cached bitfields");
 				bitfields_dump = Cache::deserializeMap<BitField>(bitfieldsCacheFile);
+				
+				if (fs::exists(fieldsCacheFile))
+				{
+					Log::GetLog()->info("Reading cached field types");
+					fields_dump = Cache::deserializeMap<FieldInfo>(fieldsCacheFile);
+				}
+				
+				if (fs::exists(functionsCacheFile))
+				{
+					Log::GetLog()->info("Reading cached function info");
+					functions_dump = Cache::deserializeMap<FunctionInfo>(functionsCacheFile);
+				}
 			}
 		}
 		catch (const std::exception& error)
@@ -144,7 +152,7 @@ namespace API
 			return false;
 		}
 
-		Offsets::Get().Init(move(offsets_dump), move(bitfields_dump));
+		Offsets::Get().Init(move(offsets_dump), move(bitfields_dump), move(fields_dump), move(functions_dump));
 		Sleep(10);
 		AsaApi::InitHooks();
 		Log::GetLog()->info("API was successfully loaded");
@@ -282,9 +290,11 @@ namespace API
 	{
 		GetCommands()->AddConsoleCommand("plugins.load", &LoadPluginCmd);
 		GetCommands()->AddConsoleCommand("plugins.unload", &UnloadPluginCmd);
+		GetCommands()->AddConsoleCommand("dumpclass", &DumpClassCmd);
 		GetCommands()->AddRconCommand("plugins.load", &LoadPluginRcon);
 		GetCommands()->AddRconCommand("plugins.unload", &UnloadPluginRcon);
 		GetCommands()->AddRconCommand("map.setserverid", &SetServerID);
+		GetCommands()->AddRconCommand("dumpclass", &DumpClassRcon);
 	}
 
 	FString ArkBaseApi::LoadPlugin(FString* cmd)
@@ -409,6 +419,208 @@ namespace API
 			reply = L"You must specify a unique server id.";
 
 		
+		rcon_connection->SendMessageW(rcon_packet->Id, 0, &reply);
+	}
+
+	FString ArkBaseApi::DumpClass(FString* cmd) {
+		TArray<FString> parsed;
+		cmd->ParseIntoArray(parsed, L" ", true);
+
+		if (!parsed.IsValidIndex(1)) {
+			return L"Usage: dumpclass <ClassName>";
+		}
+
+		const std::string className = parsed[1].ToString();
+		const bool isGlobal = (className == "Global");
+		
+		try {
+			namespace fs = std::filesystem;
+			
+			TCHAR buffer[MAX_PATH];
+			GetModuleFileName(NULL, buffer, sizeof(buffer));
+			fs::path exe_path = fs::path(buffer).parent_path();
+			
+			const fs::path dumpDir = exe_path / "ArkApi" / "ClassDumps";
+			if (!fs::exists(dumpDir))
+				fs::create_directories(dumpDir);
+			
+			const fs::path outputFile = dumpDir / (className + ".h");
+			std::ofstream file(outputFile);
+			
+			if (!file.is_open()) {
+				return FString::Format("Failed to create output file: {}", outputFile.string().c_str());
+			}
+			
+			auto fields = Offsets::Get().GetFieldsForClass(className);
+			auto bitfields = Offsets::Get().GetBitFieldsForClass(className);
+			auto functions = Offsets::Get().GetFunctionsForClass(className);
+			
+			if (fields.empty() && bitfields.empty() && functions.empty()) {
+				file.close();
+				fs::remove(outputFile);
+				return FString::Format("No data found for class: {}", className.c_str());
+			}
+			
+			std::sort(fields.begin(), fields.end(), [](const auto& a, const auto& b) { return a.second.offset < b.second.offset; });
+			std::sort(bitfields.begin(), bitfields.end(), [](const auto& a, const auto& b) { return a.second.offset < b.second.offset; });
+			std::sort(functions.begin(), functions.end(), [](const auto& a, const auto& b) { return a.second.signature < b.second.signature; });
+
+			if (isGlobal) {
+				file << "namespace " << className << "\n{\n";
+			}
+			else {
+				file << "struct " << className << "\n{\n";
+			}
+			
+			if (!fields.empty()) {
+				file << "\t// Fields\n\n";
+				for (const auto& [key, info] : fields) {
+					size_t dotPos = key.rfind('.');
+					std::string memberName = (dotPos != std::string::npos) ? key.substr(dotPos + 1) : key;
+					
+					if (isGlobal) {
+						file << "\tinline " << info.type << "& " << memberName << "Field() { return *GetNativeDataPointerField<" << info.type << "*>(nullptr, \"" << key << "\"); }\n";
+					}
+					else {
+						file << "\t" << info.type << "& " << memberName << "Field() { return *GetNativePointerField<" << info.type << "*>(this, \"" << key << "\"); }\n";
+					}
+				}
+			}
+			
+			if (!bitfields.empty()) {
+				file << "\n\t// Bitfields\n\n";
+				for (const auto& [key, bf] : bitfields) {
+					size_t dotPos = key.rfind('.');
+					std::string memberName = (dotPos != std::string::npos) ? key.substr(dotPos + 1) : key;
+					
+					if (isGlobal) {
+						file << "\tinline BitFieldValue<bool, unsigned __int32> " << memberName << "Field() { return { nullptr, \"" << key << "\" }; }\n";
+					}
+					else {
+						file << "\tBitFieldValue<bool, unsigned __int32> " << memberName << "Field() { return { this, \"" << key << "\" }; }\n";
+					}
+				}
+			}
+			
+			if (!functions.empty()) {
+				file << "\n\t// Functions\n\n";
+				for (const auto& [key, info] : functions) {
+					if (info.signature.rfind("exec", 0) == 0)
+						continue;
+					
+					std::string paramTypes = info.params;
+					std::vector<std::string> paramNamesList;
+					if (!info.paramNames.empty()) {
+						std::string name;
+						for (char c : info.paramNames) {
+							if (c == ',') {
+								if (!name.empty()) paramNamesList.push_back(name);
+								name.clear();
+							}
+							else {
+								name += c;
+							}
+						}
+						if (!name.empty()) paramNamesList.push_back(name);
+					}
+
+					std::string paramDecl;
+					std::string paramCall;
+					if (!info.params.empty()) {
+						std::vector<std::string> paramList;
+						std::string param;
+						int depth = 0;
+						for (char c : info.params) {
+							if (c == '<') depth++;
+							else if (c == '>') depth--;
+							else if (c == ',' && depth == 0) {
+								paramList.push_back(param);
+								param.clear();
+								continue;
+							}
+							param += c;
+						}
+						if (!param.empty()) paramList.push_back(param);
+						
+						for (size_t i = 0; i < paramList.size(); i++) {
+							if (i > 0) {
+								paramDecl += ", ";
+								paramCall += ", ";
+							}
+
+							std::string paramName = (i < paramNamesList.size()) ? paramNamesList[i] : ("arg" + std::to_string(i));
+							paramDecl += paramList[i] + " " + paramName;
+							paramCall += paramName;
+						}
+					}
+					
+					size_t parenPos = info.signature.find('(');
+					std::string funcName = (parenPos != std::string::npos) ? info.signature.substr(0, parenPos) : info.signature;
+					
+					if (isGlobal) {
+						if (info.returnType == "void" || info.returnType.empty()) {
+							if (paramTypes.empty())
+								file << "\tinline void " << funcName << "() { NativeCall<void>(nullptr, \"" << key << "\"); }\n";
+							else
+								file << "\tinline void " << funcName << "(" << paramDecl << ") { NativeCall<void, " << paramTypes << ">(nullptr, \"" << key << "\", " << paramCall << "); }\n";
+						}
+						else {
+							if (paramTypes.empty())
+								file << "\tinline " << info.returnType << " " << funcName << "() { return NativeCall<" << info.returnType << ">(nullptr, \"" << key << "\"); }\n";
+							else
+								file << "\tinline " << info.returnType << " " << funcName << "(" << paramDecl << ") { return NativeCall<" << info.returnType << ", " << paramTypes << ">(nullptr, \"" << key << "\", " << paramCall << "); }\n";
+						}
+					}
+					else if (info.isStatic) {
+						if (info.returnType == "void" || info.returnType.empty()) {
+							if (paramTypes.empty())
+								file << "\tstatic void " << funcName << "() { NativeCall<void>(nullptr, \"" << key << "\"); }\n";
+							else
+								file << "\tstatic void " << funcName << "(" << paramDecl << ") { NativeCall<void, " << paramTypes << ">(nullptr, \"" << key << "\", " << paramCall << "); }\n";
+						}
+						else {
+							if (paramTypes.empty())
+								file << "\tstatic " << info.returnType << " " << funcName << "() { return NativeCall<" << info.returnType << ">(nullptr, \"" << key << "\"); }\n";
+							else
+								file << "\tstatic " << info.returnType << " " << funcName << "(" << paramDecl << ") { return NativeCall<" << info.returnType << ", " << paramTypes << ">(nullptr, \"" << key << "\", " << paramCall << "); }\n";
+						}
+					}
+					else {
+						if (info.returnType == "void" || info.returnType.empty()) {
+							if (paramTypes.empty())
+								file << "\tvoid " << funcName << "() { NativeCall<void>(this, \"" << key << "\"); }\n";
+							else
+								file << "\tvoid " << funcName << "(" << paramDecl << ") { NativeCall<void, " << paramTypes << ">(this, \"" << key << "\", " << paramCall << "); }\n";
+						}
+						else {
+							if (paramTypes.empty())
+								file << "\t" << info.returnType << " " << funcName << "() { return NativeCall<" << info.returnType << ">(this, \"" << key << "\"); }\n";
+							else
+								file << "\t" << info.returnType << " " << funcName << "(" << paramDecl << ") { return NativeCall<" << info.returnType << ", " << paramTypes << ">(this, \"" << key << "\", " << paramCall << "); }\n";
+						}
+					}
+				}
+			}
+			
+			file << "};\n";
+			file.close();
+			
+			Log::GetLog()->info("Class dump saved to: {}", outputFile.string());
+			return FString::Format("Class dump saved to: {}", outputFile.string().c_str());
+		}
+		catch (const std::exception& error) {
+			Log::GetLog()->warn("({}) {}", __FUNCTION__, error.what());
+			return FString::Format("Failed to dump class - {}", error.what());
+		}
+	}
+
+	void ArkBaseApi::DumpClassCmd(APlayerController* player_controller, FString* cmd, bool /*unused*/) {
+		auto* shooter_controller = static_cast<AShooterPlayerController*>(player_controller);
+		AsaApi::GetApiUtils().SendServerMessage(shooter_controller, FColorList::Green, *DumpClass(cmd));
+	}
+
+	void ArkBaseApi::DumpClassRcon(RCONClientConnection* rcon_connection, RCONPacket* rcon_packet, UWorld* /*unused*/) {
+		FString reply = DumpClass(&rcon_packet->Body);
 		rcon_connection->SendMessageW(rcon_packet->Id, 0, &reply);
 	}
 } // namespace API
