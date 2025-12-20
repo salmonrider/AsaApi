@@ -580,21 +580,23 @@ namespace AsaApi
 		 */
 		static FORCEINLINE FString GetClassBlueprint(UClass* the_class)
 		{
-			if (the_class != nullptr)
-			{
-				FString path;
-				TSubclassOf<UObject> subclass;
-				subclass.uClass = the_class;
-				path = UVictoryCore::ClassToStringReference(&subclass);
+			if (!the_class)
+				return FString("");
 
-				if (path.EndsWith("_C"))
-					return "Blueprint'" + path.LeftChop(2) + "'";
-				else
-					return "Blueprint'" + path + "'";
-			}
+			FString path;
+			TSubclassOf<UObject> subclass;
+			subclass.uClass = the_class;
+			FString* result = UVictoryCore::ClassToStringReference(&path, &subclass);
 
-			return FString("");
+			if (!result || result->IsEmpty())
+				return FString("");
+
+			if (result->EndsWith(TEXT("_C")))
+				return FString::Printf(TEXT("Blueprint'%s'"), *result->LeftChop(2));
+			else
+				return FString::Printf(TEXT("Blueprint'%s'"), **result);
 		}
+
 
 		/**
 		* \brief Get Shooter Game State
