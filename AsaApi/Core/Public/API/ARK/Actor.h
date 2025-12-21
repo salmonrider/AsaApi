@@ -5647,7 +5647,7 @@ struct APrimalCharacter : ACharacter
     bool AllowSaving() { return NativeCall<bool>(this, "APrimalCharacter.AllowSaving()"); }
     bool IsWatered() { return NativeCall<bool>(this, "APrimalCharacter.IsWatered()"); }
     void OnDeserializedByGame(EOnDeserializationType::Type DeserializationType) { NativeCall<void, EOnDeserializationType::Type>(this, "APrimalCharacter.OnDeserializedByGame(EOnDeserializationType::Type)", DeserializationType); }
-    int LevelUpPlayerAddedStat(TEnumAsByte<EPrimalCharacterStatusValue::Type> StatToLevel, int NumLevels, AShooterPlayerController* ForPlayer) { return NativeCall<int, TEnumAsByte<EPrimalCharacterStatusValue::Type>, int, AShooterPlayerController*>(this, "APrimalCharacter.LevelUpPlayerAddedStat(TEnumAsByte<EPrimalCharacterStatusValue::Type>,int,AShooterPlayerController*)", StatToLevel, NumLevels, ForPlayer); }
+    int LevelUpPlayerAddedStat(TEnumAsByte<EPrimalCharacterStatusValue::Type> StatToLevel, int NumLevels, AShooterPlayerController* ForPlayer, bool bDontRequirePCForDino) { return NativeCall<int, TEnumAsByte<EPrimalCharacterStatusValue::Type>, int, AShooterPlayerController*, bool>(this, "APrimalCharacter.LevelUpPlayerAddedStat(TEnumAsByte<EPrimalCharacterStatusValue::Type>,int,AShooterPlayerController*,bool)", StatToLevel, NumLevels, ForPlayer, bDontRequirePCForDino); }
     void CheckJumpInput(float DeltaTime) { NativeCall<void, float>(this, "APrimalCharacter.CheckJumpInput(float)", DeltaTime); }
     void ServerTryPoop_Implementation() { NativeCall<void>(this, "APrimalCharacter.ServerTryPoop_Implementation()"); }
     void ClientFailedPoop_Implementation() { NativeCall<void>(this, "APrimalCharacter.ClientFailedPoop_Implementation()"); }
