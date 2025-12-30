@@ -760,25 +760,49 @@ namespace AsaApi
 		}
 
 		/**
-		* \brief Create a new object of T, with the correct size
-		* \tparam T struct type. Must have ScriptStruct defined
-		* \return Pointer to T
-		*/
-		template<class T>
+		 * \brief Create a new object of T, with the correct size
+		 * \tparam T struct type. Must have ScriptStruct defined
+		 * \return Pointer to T
+		 */
+		template <class T>
 		static FORCEINLINE T* AllocateStruct()
 		{
-			static int size = GetStructSize<T>();
-			T* obj = static_cast<T*>(FMemory::Malloc(size));
-			RtlSecureZeroMemory(obj, size);
-			return obj;
+			UScriptStruct* ss = T::StaticStruct();
+			if (!ss)
+				return nullptr;
+
+			uint32 alignment = static_cast<uint32>(ss->MinAlignmentField());
+			alignment = FMath::RoundUpToPowerOfTwo(FMath::Max<uint32>(alignment, 1u));
+			
+			const uint32 unalignedSize = static_cast<uint32>(ss->PropertiesSizeField());
+			if (unalignedSize == 0u)
+				return nullptr;
+
+			const uint32 size = Align(unalignedSize, alignment);
+			if (size == 0u)
+				return nullptr;
+
+			void* obj = FMemory::Malloc(size, alignment);
+			if (!obj)
+				return nullptr;
+
+			ss->InitializeStruct(obj, 1);
+			return static_cast<T*>(obj);
 		}
 
 		/**
-		* \brief Free a struct allocated
-		* \param obj Pointer to struct
-		*/
-		static FORCEINLINE void FreeStruct(void* obj)
+		 * \brief Free a struct allocated
+		 * \param obj Pointer to struct
+		 */
+		template <class T>
+		static FORCEINLINE void FreeStruct(T* obj)
 		{
+			if (!obj)
+				return;
+
+			if (UScriptStruct* ss = T::StaticStruct())
+				ss->DestroyStruct(obj, 1);
+
 			FMemory::Free(obj);
 		}
 
