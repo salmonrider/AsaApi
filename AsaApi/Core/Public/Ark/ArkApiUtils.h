@@ -771,20 +771,23 @@ namespace AsaApi
 			if (!ss)
 				return nullptr;
 
-			int32 Alignment = static_cast<int32>(ss->MinAlignmentField());
-			Alignment = FMath::Max<int32>(Alignment, static_cast<int32>(DEFAULT_ALIGNMENT));
-			Alignment = FMath::Max<int32>(Alignment, 1);
-			Alignment = FMath::RoundUpToPowerOfTwo(Alignment);
-
-			const int32 UnalignedSize = static_cast<int32>(ss->PropertiesSizeField());
-			if (UnalignedSize <= 0)
+			uint32 alignment = static_cast<uint32>(ss->MinAlignmentField());
+			alignment = FMath::Max<uint32>(alignment, static_cast<uint32>(DEFAULT_ALIGNMENT));
+			alignment = FMath::Max<uint32>(alignment, 1u);
+			alignment = FMath::RoundUpToPowerOfTwo(alignment);
+			
+			const uint32 unalignedSize = static_cast<uint32>(ss->PropertiesSizeField());
+			if (unalignedSize == 0u)
 				return nullptr;
 
-			const int32 Size = Align(UnalignedSize, Alignment);
-			if (Size <= 0)
+			const uint32 size = Align(unalignedSize, alignment);
+			if (size == 0u)
 				return nullptr;
 
-			void* obj = FMemory::Malloc(Size, Alignment);
+			void* obj = FMemory::Malloc(size, alignment);
+			if (!obj)
+				return nullptr;
+
 			ss->InitializeStruct(obj, 1);
 			return static_cast<T*>(obj);
 		}
